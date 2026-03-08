@@ -4,6 +4,7 @@ using System.Threading;
 using Unity.Jobs;
 using Myproject;
 using JetBrains.Annotations;
+using Unity.Mathematics;
 
 
 public class Gamemanager : MonoBehaviour
@@ -16,6 +17,12 @@ public class Gamemanager : MonoBehaviour
     public int x;
     public int y;
     static public ParticleSystem.Particle[] myparticles = new ParticleSystem.Particle[10000]; //宣告粒子陣列大小
+    static public ParticleSystem.Particle myparticles2 ; //宣告粒子接算出來的數據
+
+    static public NativeHashMap<int,hashmap.inspection> particlepool; //宣告雜湊表 存放粒子位置
+    
+    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     [SerializeField] private ParticleSystem myParticleSystem; //宣告粒子系統
@@ -27,8 +34,9 @@ public class Gamemanager : MonoBehaviour
             Mycolor.colorcoordinate(2); //宣告顏色陣列大小 不回收
         Mycell = new cell();
         Mypos = new pos();
+        particlepool = new NativeHashMap<int, hashmap.inspection>(10000, Allocator.Persistent); //宣告雜湊表大小 不回收
 
-          matrix(); //計算細胞座標 並將粒子位置設為細胞座標
+        matrix(); //計算細胞座標 並將粒子位置設為細胞座標
 
     }
 
@@ -47,17 +55,27 @@ public class Gamemanager : MonoBehaviour
 
     }
 
-    public void matrix()
+    public void buffer()
     {
         for (int i = 0; i<Mygame.iscell.Length; i++)
-        { 
-          x = i% width; //計算x座標
-          y = i/ width; //計算y座標
-          myparticles[i].position = new Vector3(x, y, 0); //將粒子位置設為(x,y,0)
-          myparticles[i].startColor =  new Color32(191, 64, 255, 255); //將粒子顏色設為紫色
-          myparticles[i].startSize = 0.1f; //將粒子大小設為0.1
-          myparticles[i].remainingLifetime = Mathf.Infinity; //將粒子生命週期設為無限
+        {
+            x = i% width; //計算x座標
+            y = i/ width; //計算y座標
+            myparticles2.position = new Vector3(x, y, 0); //將粒子位置設為(x,y,0)
+            myparticles2.startColor =  new Color32(191, 64, 255, 255); //將粒子顏色設為紫色
+            myparticles2.startSize = 0.1f; //將粒子大小設為0.1
+            myparticles2.remainingLifetime = Mathf.Infinity; //將粒子生命週期設為無限
+            hashtable(new hashmap.inspection { pos = myparticles2.position, color = myparticles2.startColor, size = myparticles2.startSize, life = myparticles2.remainingLifetime }); //將粒子資料存入雜湊表
         }
+    }
+
+    public void hashtable(hashmap.inspection data)
+    {
+      particlepool.TryAdd((int)(data.pos.x*73856093)^(int)(data.pos.y*19349663),data); //將粒子資料存入雜湊表 使用位置*大質數作為key
+    }
+    public void matrix()
+    {
+      
         myParticleSystem.SetParticles(myparticles, myparticles.Length);
     }
 
