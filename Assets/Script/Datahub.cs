@@ -1,94 +1,72 @@
 ﻿using System.Threading;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.VisualScripting;
+using Unity.Android.Gradle;
+using System.Runtime.InteropServices;
+using System;
 
 
 namespace Myproject
 
 {
-    public class Datahub
-    {
-        public struct Data
-        {
-            public int id; //細胞ID          4byte
-
-        }
-
-        public NativeArray<int> iscell;//宣告細胞陣列
-        public void coordinate(int size)
-        {
-            iscell = new NativeArray<int>(size, Allocator.Persistent); //宣告細胞陣列大小 不回收
-        }
-    }
-
-    public class color
-    {
-        public struct RGB
-        {
-            public int R;
-            public int G;
-            public int B;
-        }
-
-        public NativeArray<RGB> colorarray; //宣告顏色陣列
-        public void colorcoordinate(int size)
-        {
-            colorarray = new NativeArray<RGB>(size, Allocator.Persistent); //宣告顏色陣列大小 不回收
-        }
-
-
-    }
-
-    public class cell
-    {
-        public struct cellstruct
-        {
-            public int id; //細胞ID          4byte
-
-        }
-        public NativeArray<cellstruct> cellarray; //宣告細胞陣列
-        public void cellcoordinate()
-        {
-            cellarray = new NativeArray<cellstruct>(2, Allocator.Persistent); //宣告細胞陣列大小 不回收
-        }
-
-    }
-
-    public class pos
-    {
-        public struct posstruct
-        {
-            public int x;
-            public int y;
-        }
-
-    }
+    [System.Serializable]
 
     public class hashmap
     {
+        private AVL_tree avltree = new AVL_tree(10000); //AVL樹
+        private int width = 100; //網格寬度
+        private int height = 100;//網格高度
+        Matrix4x4[] matrices = new Matrix4x4[1023]; //矩陣陣列
+        public Mesh Mesh; //網格
+        public Material Material; //材質
+        public RenderParams rp; 
+
         public struct inspection
         {
             public float3 pos;
-            public byte[] status;
+            public byte status; //0:格子 灰色 1:活細胞 紫色 2:新生細胞 粉色
             public float size;
             public float life;
 
 
-            public inspection(float3 pos, Color32 color, float size, float life)
+
+        }
+        public void DrawmyGrid()
+        {
+            for (int i = 0; i<1023; i++)
             {
-                this.pos = pos;
-                this.color = color;
-                this.size = size;
-                this.life = life;
+                matrices[i] =  Matrix4x4.TRS(new Vector3(i % width, i / width, i/(width*height)), Quaternion.identity, Vector3.one);
+                inspection cell = new inspection();
+                cell.pos = new float3(i % width, i / width, i / (width * height));
+                cell.status = 0;
+                //avltree.add(cell);
+
             }
+             rp = new RenderParams(Material);
+
+            // 2. 設定渲染邊界 (覆蓋你 100x100 的領土)
+            rp.worldBounds = new Bounds(Vector3.zero, new Vector3(100, 100, 10));
+
+
+           
         }
 
-
+        public void UpdatemyGrid()
+        {
+            // 4. 執行 URP 現代化閃擊！！
+            Graphics.RenderMeshInstanced(rp, Mesh, 0, matrices, 1023);
+        }
     }
 
-    public class AVL_tree
+        
+
+
+    
+
+    public unsafe class AVL_tree
     {
         const int isnull = -1; //AVL樹插入位置
         private int root = isnull; //AVL樹根節點位置
@@ -108,7 +86,7 @@ namespace Myproject
             
 
         public NativeArray<AVLnode> avltree; //宣告AVL樹陣列
-        public void avltreecoordinate(int size)
+        public AVL_tree(int size)
         {
             avltree = new NativeArray<AVLnode>(size, Allocator.Persistent); //宣告AVL樹陣列大小 不回收
         }
